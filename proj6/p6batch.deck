@@ -1,0 +1,96 @@
+#!/bin/csh  
+# ATMS 502 / CSE 566 - Spring, 2016
+# Stampede details: https://www.tacc.utexas.edu/user-services/user-guides/stampede-user-guide
+# Submit this to the Stampede batch system by typing:  sbatch p6batch.deck
+# Check on batch job status by running this script:  ~tg457444/502/Tools/chk  
+#    ...stop the check-job-status script by typing: control-C
+
+# =======================Stampede batch =================================
+#SBATCH -J finalLR	  # Job Name
+#SBATCH -o finalLR.o%j    # Output and error file name (%j expands to jobID)
+#SBATCH -p development	  # Queue name: serial, development, normal, large...
+#SBATCH -n 16		  # Total number of mpi tasks requested
+#SBATCH -t 02:00:00	  # Run time (hh:mm:ss)
+#SBATCH -A TG-ASC120037   # Charge to class account
+#SBATCH --mail-user=lma16@illinois.edu  # **** SET to YOUR email ****
+#SBATCH --mail-type=all
+# Info: www.tacc.utexas.edu/user-services/user-guides/stampede-user-guide
+# =======================================================================
+
+echo ' '
+echo -n "Job starting at "; date
+
+#
+# System settings you may need when this job runs
+#
+
+setenv NETCDF     ~tg457444/netcdf4.1.3
+setenv NCARG_ROOT ~tg457444/ncarg
+setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:$NETCDF/lib
+set path = ( $NETCDF/bin $NCARG_ROOT/bin $path . )
+
+#
+# Run single-cpu code
+#
+
+unlimit				  	  # reduce limits on memory
+limit stacksize unlimited
+
+# Create the run directory and "cd" there.
+#
+# The run directory is put on SCRATCH space because the output
+# file, RunHistory.dat, can be very large.  A "symbolic link"
+# is placed in this directory so you can easily cd there.
+#
+# So the steps below do this:
+#   1. assign the name of the running (executable) program
+#   2. set the current working directory to be the program 6 'home'
+#   3. set the location of the directory where program 6 will run
+#       ... this uses the name you gave this job above (SBATCH -J)
+#       ... use second (commented out) line if you want a different
+#           directory created every time you run this deck.
+#   4. make (create) the run directory; make sure it is locked up.
+#   5. make the symbolic link from the run directory, to here.
+#   6. change to ("cd" to) that run directory.
+
+# set program6_name = p6.1CPU
+set program6_name = p6.OMP
+set program6_home = $cwd
+set run_dir  = $SCRATCH/Atms502pgm6/${SLURM_JOB_NAME}
+#set run_dir = $SCRATCH/Atms502pgm6/${SLURM_JOB_NAME}_$SLURM_JOB_ID
+mkdir -p $run_dir; chmod go-rwx $run_dir
+ln -f -s $run_dir .
+cd $run_dir
+
+#
+# Run multiple-core parallel code
+#
+
+unlimit				  	  # use all available memory
+limit stacksize unlimited
+
+rm -f RunHistory.dat gmeta		  # if old ones exist, Remove now
+
+echo ' '
+set ppn   = $SLURM_TASKS_PER_NODE
+set nodes = $SLURM_JOB_NUM_NODES
+@ NCORES  = $SLURM_TACC_CORES
+setenv OMP_NUM_THREADS $NCORES		  # use all cores requested for job
+  printf "%2d cores: " $NCORES
+#xx echo Running with $NCORES cores.  	  # states how many cores we will use
+
+set t_start=`echo "print time();" | perl`
+
+/usr/bin/time -p $program6_home/$program6_name  \
+      << END_OF_INPUT |&  tee run.log
+6000
+500
+END_OF_INPUT
+
+set t_finish=`echo "print time();" | perl`
+echo "wallclock time = `expr $t_finish - $t_start` seconds"
+
+
+echo ' '
+echo -n "Job finished at "; date
+exit

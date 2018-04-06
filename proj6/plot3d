@@ -1,0 +1,5 @@
+#!/bin/csh
+
+setenv NETCDF /home1/00478/tg457444/netcdf4.1.3
+setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:$NETCDF/lib
+/home1/00478/tg457444/502/Pgm6/plot3d_exec $1 $2 $3

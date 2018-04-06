@@ -1,0 +1,12 @@
+Lax_Wendroff:
+correlation =  0.98229
+total error =  0.03086
+dissipation error =  0.00003
+dispersion error =  0.03085
+
+Upstream:
+correlation =  0.79974
+total error =  0.40822
+dissipation error =  0.24175
+dispersion error =  0.16652
+
